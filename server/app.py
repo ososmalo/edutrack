@@ -22,7 +22,10 @@ if FRONTEND_URL:
 CORS(
     app,
     supports_credentials=True,
-    origins=allowed_origins,
+    origins=[
+        "http://localhost:5173",
+        "https://edutrack-ten-puce.vercel.app"
+    ],
 )
 
 DB_PATH = Path(__file__).parent / "edutrack.db"
