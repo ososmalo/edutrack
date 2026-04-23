@@ -4,7 +4,6 @@ import {
   BarChart3,
   BookOpen,
   CalendarDays,
-  CheckCircle2,
   Clock3,
   GraduationCap,
   LayoutDashboard,
@@ -36,7 +35,7 @@ import {
   CartesianGrid,
 } from "recharts";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 
 const navItems = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -449,6 +448,8 @@ export default function App() {
     setGrades([]);
     setTasks([]);
     setScheduleItems([]);
+    setAdminSession(false);
+    setAdminOpen(false);
   }
 
   async function saveProfile() {
@@ -504,6 +505,7 @@ export default function App() {
     setAdminForm({ username: "", password: "" });
     setAdminSelectedUser(null);
     setAdminUserDetails(null);
+    setAdminError("");
   }
 
   async function openAdminUser(userId) {
@@ -1390,6 +1392,305 @@ export default function App() {
                             <Button variant="ghost" onClick={() => cancelEdit("schedule")}>
                               Cancel
                             </Button>
+                          ) : null}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+
+                {activeTab === "analytics" && (
+                  <motion.div
+                    key="analytics"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -14 }}
+                    className="grid gap-6 xl:grid-cols-2"
+                  >
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Grades Chart</CardTitle>
+                      </CardHeader>
+                      <CardContent className="h-80">
+                        {gradeChartData.length ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={gradeChartData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                              <XAxis dataKey="subject" stroke="#cbd5e1" />
+                              <YAxis stroke="#cbd5e1" />
+                              <Tooltip />
+                              <Bar dataKey="percent" radius={[8, 8, 0, 0]} fill="#8b5cf6" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <EmptyState title="No grade data" subtitle="Add grades to see the chart." />
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Task Status</CardTitle>
+                      </CardHeader>
+                      <CardContent className="h-80">
+                        {tasks.length ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={taskChartData} dataKey="value" nameKey="name" outerRadius={110} label>
+                                <Cell fill="#8b5cf6" />
+                                <Cell fill="#334155" />
+                              </Pie>
+                              <Tooltip />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <EmptyState title="No task data" subtitle="Add tasks to see the chart." />
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="xl:col-span-2">
+                      <CardHeader>
+                        <CardTitle>Subject Progress Chart</CardTitle>
+                      </CardHeader>
+                      <CardContent className="h-80">
+                        {subjectProgressData.length ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={subjectProgressData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                              <XAxis dataKey="subject" stroke="#cbd5e1" />
+                              <YAxis stroke="#cbd5e1" />
+                              <Tooltip />
+                              <Bar dataKey="progress" radius={[8, 8, 0, 0]} fill="#22c55e" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <EmptyState title="No subject progress data" subtitle="Add subjects to see the chart." />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+
+                {activeTab === "profile" && (
+                  <motion.div
+                    key="profile"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -14 }}
+                  >
+                    <Card className="max-w-2xl">
+                      <CardHeader>
+                        <CardTitle>Student Profile</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4 text-slate-300">
+                        <div className="rounded-3xl border border-white/10 bg-black/20 p-5 space-y-4">
+                          <div>
+                            <label className="mb-2 block text-sm text-slate-400">Name</label>
+                            <Input
+                              value={profileForm.name}
+                              onChange={(e) =>
+                                setProfileForm({ ...profileForm, name: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div>
+                            <label className="mb-2 block text-sm text-slate-400">Your ID</label>
+                            <Input
+                              value={profileForm.custom_id}
+                              onChange={(e) =>
+                                setProfileForm({ ...profileForm, custom_id: e.target.value })
+                              }
+                              placeholder="Enter your own ID"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="mb-2 block text-sm text-slate-400">Username</label>
+                            <Input value={session.username} disabled className="opacity-70" />
+                          </div>
+
+                          <Button onClick={saveProfile} disabled={profileSaving}>
+                            {profileSaving ? "Saving..." : "Save Profile"}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
+          </motion.div>
+        </main>
+      </div>
+
+      <AnimatePresence>
+        {adminOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              className="w-full max-w-6xl rounded-3xl border border-white/10 bg-slate-950 p-6 text-white shadow-2xl"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-2xl font-black">Admin Panel</h2>
+                <button onClick={() => setAdminOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {!adminSession ? (
+                <form onSubmit={adminLogin} className="space-y-4">
+                  <Input
+                    placeholder="Admin username"
+                    value={adminForm.username}
+                    onChange={(e) => setAdminForm({ ...adminForm, username: e.target.value })}
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Admin password"
+                    value={adminForm.password}
+                    onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                  />
+                  {adminError ? <p className="text-sm text-red-400">{adminError}</p> : null}
+                  <Button type="submit">Open Admin</Button>
+                </form>
+              ) : (
+                <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+                  <div className="space-y-4">
+                    <div className="flex gap-3">
+                      <Button onClick={refreshAdminUsers} variant="ghost">Refresh Users</Button>
+                      <Button onClick={adminLogout} variant="danger">Logout Admin</Button>
+                    </div>
+
+                    {adminError ? (
+                      <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                        {adminError}
+                      </div>
+                    ) : null}
+
+                    <div className="overflow-x-auto rounded-2xl border border-white/10">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-white/5 text-slate-300">
+                          <tr>
+                            <th className="px-4 py-3">DB ID</th>
+                            <th className="px-4 py-3">Name</th>
+                            <th className="px-4 py-3">Username</th>
+                            <th className="px-4 py-3">Custom ID</th>
+                            <th className="px-4 py-3">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {adminUsers.map((user) => (
+                            <tr key={user.id} className="border-t border-white/10">
+                              <td className="px-4 py-3">{user.id}</td>
+                              <td className="px-4 py-3">{user.name}</td>
+                              <td className="px-4 py-3">{user.username}</td>
+                              <td className="px-4 py-3">{user.custom_id || "-"}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    onClick={() => openAdminUser(user.id)}
+                                    className="rounded-xl bg-white/5 p-2 text-slate-300 hover:bg-white/10 hover:text-white"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => resetAdminUser(user.id)}
+                                    className="rounded-xl bg-amber-600/20 p-2 text-amber-300 hover:bg-amber-600/30"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteAdminUser(user.id)}
+                                    className="rounded-xl bg-red-600/20 p-2 text-red-300 hover:bg-red-600/30"
+                                  >
+                                    <UserX className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {adminDetailsLoading ? (
+                        <p className="text-slate-400">Loading...</p>
+                      ) : adminUserDetails ? (
+                        <>
+                          <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
+                            <p><span className="font-semibold text-white">Name:</span> {adminUserDetails.user.name}</p>
+                            <p className="mt-2"><span className="font-semibold text-white">Username:</span> {adminUserDetails.user.username}</p>
+                            <p className="mt-2"><span className="font-semibold text-white">Custom ID:</span> {adminUserDetails.user.custom_id || "-"}</p>
+                          </div>
+
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                              <p className="font-semibold text-white">Subjects</p>
+                              <p className="mt-2 text-sm text-slate-400">{adminUserDetails.subjects.length}</p>
+                            </div>
+                            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                              <p className="font-semibold text-white">Grades</p>
+                              <p className="mt-2 text-sm text-slate-400">{adminUserDetails.grades.length}</p>
+                            </div>
+                            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                              <p className="font-semibold text-white">Tasks</p>
+                              <p className="mt-2 text-sm text-slate-400">{adminUserDetails.tasks.length}</p>
+                            </div>
+                            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                              <p className="font-semibold text-white">Schedule</p>
+                              <p className="mt-2 text-sm text-slate-400">{adminUserDetails.schedule.length}</p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                              <p className="mb-2 font-semibold text-white">Subjects</p>
+                              <div className="space-y-1 text-sm text-slate-300">
+                                {adminUserDetails.subjects.length ? adminUserDetails.subjects.map((x) => (
+                                  <p key={x.id}>{x.name} - {x.teacher}</p>
+                                )) : <p className="text-slate-500">None</p>}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                              <p className="mb-2 font-semibold text-white">Tasks</p>
+                              <div className="space-y-1 text-sm text-slate-300">
+                                {adminUserDetails.tasks.length ? adminUserDetails.tasks.map((x) => (
+                                  <p key={x.id}>{x.title}</p>
+                                )) : <p className="text-slate-500">None</p>}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-slate-400">Choose a user to view details.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}                            </Button>
                           ) : null}
                         </div>
                       </CardContent>
