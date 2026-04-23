@@ -8,24 +8,25 @@ import os
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "").strip()
-IS_PRODUCTION = bool(FRONTEND_URL and not FRONTEND_URL.startswith("http://localhost"))
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://edutrack-ten-puce.vercel.app").strip()
+IS_PRODUCTION = FRONTEND_URL.startswith("https://")
 
 app.config["SESSION_COOKIE_SAMESITE"] = "None" if IS_PRODUCTION else "Lax"
 app.config["SESSION_COOKIE_SECURE"] = IS_PRODUCTION
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 
-allowed_origins = ["http://localhost:5173"]
-if FRONTEND_URL:
+allowed_origins = [
+    "http://localhost:5173",
+    "https://edutrack-ten-puce.vercel.app",
+]
+
+if FRONTEND_URL and FRONTEND_URL not in allowed_origins:
     allowed_origins.append(FRONTEND_URL)
 
 CORS(
     app,
     supports_credentials=True,
-    origins=[
-        "http://localhost:5173",
-        "https://edutrack-ten-puce.vercel.app"
-    ],
+    origins=allowed_origins,
 )
 
 DB_PATH = Path(__file__).parent / "edutrack.db"
@@ -135,6 +136,11 @@ def init_db():
 
 
 init_db()
+
+
+@app.route("/")
+def home():
+    return jsonify({"message": "EduTrack backend is running"})
 
 
 @app.route("/api/health")
