@@ -3,24 +3,32 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 from pathlib import Path
+import os
 
 app = Flask(__name__)
-app.secret_key = "change-this-secret-key"
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = False
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "").strip()
+IS_PRODUCTION = bool(FRONTEND_URL and not FRONTEND_URL.startswith("http://localhost"))
+
+app.config["SESSION_COOKIE_SAMESITE"] = "None" if IS_PRODUCTION else "Lax"
+app.config["SESSION_COOKIE_SECURE"] = IS_PRODUCTION
 app.config["SESSION_COOKIE_HTTPONLY"] = True
+
+allowed_origins = ["http://localhost:5173"]
+if FRONTEND_URL:
+    allowed_origins.append(FRONTEND_URL)
 
 CORS(
     app,
     supports_credentials=True,
-    origins=["http://localhost:5173"],
+    origins=allowed_origins,
 )
 
 DB_PATH = Path(__file__).parent / "edutrack.db"
 
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "123456"
+ADMIN_USERNAME = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASS", "123456")
 
 
 def get_db():
@@ -121,6 +129,9 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+
+init_db()
 
 
 @app.route("/api/health")
@@ -718,5 +729,4 @@ def schedule_item(item_id):
 
 
 if __name__ == "__main__":
-    init_db()
-    app.run(debug=True, host="localhost", port=5000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
